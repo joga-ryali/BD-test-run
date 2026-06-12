@@ -18,6 +18,11 @@ export async function summarizeRevenue(
     maximumFractionDigits: 0,
   });
 
+  const growthLine =
+    r.yoyGrowth !== null
+      ? `\nYoY growth: ${(r.yoyGrowth * 100).toFixed(1)}% vs FY${r.priorFiscalYear}`
+      : "";
+
   try {
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
@@ -30,7 +35,7 @@ export async function summarizeRevenue(
             `for a general audience. Be factual, no preamble.\n\n` +
             `Company: ${r.companyName} (${r.ticker})\n` +
             `Annual revenue: ${usd}\n` +
-            `Fiscal year: FY${r.fiscalYear} (ended ${r.periodEnd})\n` +
+            `Fiscal year: FY${r.fiscalYear} (ended ${r.periodEnd})${growthLine}\n` +
             `Source: SEC ${r.form} filing.`,
         },
       ],

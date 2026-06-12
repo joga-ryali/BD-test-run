@@ -27,6 +27,11 @@ export type RevenueResult = {
   filed: string;
   accession: string;
   filingUrl: string; // EDGAR filing index page
+  // Prior fiscal year (from the same company-facts dataset) for YoY growth.
+  priorValue: number | null;
+  priorFiscalYear: number | null;
+  priorPeriodEnd: string | null;
+  yoyGrowth: number | null; // fractional change vs. prior FY, e.g. 0.18 = +18%
 };
 
 type TickerEntry = { cik_str: number; ticker: string; title: string };
@@ -120,9 +125,28 @@ export async function getLatestAnnualRevenue(
     });
     if (annual.length === 0) continue;
 
-    // Latest by period end.
-    annual.sort((a, b) => (a.end < b.end ? 1 : a.end > b.end ? -1 : 0));
-    const latest = annual[0];
+    // A 10-K reports the current year plus prior-year comparatives, and a
+    // given fiscal year can appear in several filings (originals + restatements).
+    // Dedupe by period end, keeping the most recently filed value for each,
+    // then take the two most recent distinct years for YoY.
+    const byEnd = new Map<string, FactPoint>();
+    for (const p of annual) {
+      const existing = byEnd.get(p.end);
+      if (!existing || p.filed > existing.filed) byEnd.set(p.end, p);
+    }
+    const distinct = [...byEnd.values()].sort((a, b) =>
+      a.end < b.end ? 1 : a.end > b.end ? -1 : 0
+    );
+
+    const latest = distinct[0];
+    const prior = distinct[1] ?? null;
+    const yoyGrowth =
+      prior && prior.val !== 0 ? (latest.val - prior.val) / prior.val : null;
+
+    // SEC's `fy` is the *filing's* fiscal year, so prior-year comparatives carry
+    // the same `fy` as the latest filing. Derive the year from the period end
+    // date instead, which is correct and distinct across years.
+    const fyOf = (endDate: string) => new Date(endDate).getUTCFullYear();
 
     return {
       ticker: ticker.trim().toUpperCase(),
@@ -131,7 +155,7 @@ export async function getLatestAnnualRevenue(
       concept,
       value: latest.val,
       unit: "USD",
-      fiscalYear: latest.fy,
+      fiscalYear: fyOf(latest.end),
       fiscalPeriod: latest.fp,
       periodStart: latest.start ?? "",
       periodEnd: latest.end,
@@ -139,6 +163,10 @@ export async function getLatestAnnualRevenue(
       filed: latest.filed,
       accession: latest.accn,
       filingUrl: edgarFilingUrl(cik, latest.accn),
+      priorValue: prior?.val ?? null,
+      priorFiscalYear: prior ? fyOf(prior.end) : null,
+      priorPeriodEnd: prior?.end ?? null,
+      yoyGrowth,
     };
   }
 

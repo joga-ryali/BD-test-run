@@ -11,6 +11,12 @@ function formatUSD(value: number): string {
   });
 }
 
+function formatPct(fraction: number): string {
+  const pct = fraction * 100;
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
 function Receipt({ r, summary }: { r: RevenueResult; summary: string | null }) {
   return (
     <div className="card">
@@ -20,6 +26,14 @@ function Receipt({ r, summary }: { r: RevenueResult; summary: string | null }) {
       <p className="value">{formatUSD(r.value)}</p>
       <div className="value-label">
         Annual revenue · FY{r.fiscalYear}
+        {r.yoyGrowth !== null && (
+          <span
+            className={`growth ${r.yoyGrowth >= 0 ? "up" : "down"}`}
+            title={`vs. FY${r.priorFiscalYear}: ${formatUSD(r.priorValue ?? 0)}`}
+          >
+            {formatPct(r.yoyGrowth)} YoY
+          </span>
+        )}
       </div>
 
       {summary && <p className="summary">{summary}</p>}
@@ -42,6 +56,15 @@ function Receipt({ r, summary }: { r: RevenueResult; summary: string | null }) {
             FY{r.fiscalYear} ({r.periodStart} → {r.periodEnd})
           </span>
         </div>
+        {r.yoyGrowth !== null && (
+          <div className="receipt-row">
+            <span className="k">YoY growth</span>
+            <span className="v">
+              {formatPct(r.yoyGrowth)} (vs FY{r.priorFiscalYear}:{" "}
+              {r.priorValue?.toLocaleString("en-US")} {r.unit})
+            </span>
+          </div>
+        )}
         <div className="receipt-row">
           <span className="k">Form</span>
           <span className="v">{r.form}</span>

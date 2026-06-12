@@ -117,6 +117,26 @@ button:hover {
   margin-bottom: 24px;
 }
 
+.growth {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.growth.up {
+  color: var(--good);
+  background: rgba(70, 192, 138, 0.12);
+}
+
+.growth.down {
+  color: #ff7a7a;
+  background: rgba(255, 122, 122, 0.12);
+}
+
 .summary {
   border-left: 2px solid var(--accent);
   padding: 2px 0 2px 14px;
